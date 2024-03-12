@@ -1,7 +1,7 @@
-GET http://localhost:3001/api/persons/85
+GET http://localhost:3001/api/persons/6
 
 #########
-DELETE http://localhost:3001/api/persons/65
+DELETE http://localhost:3001/api/persons/6
 
 #########
 POST http://localhost:3001/api/persons/ HTTP/1.1

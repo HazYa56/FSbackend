@@ -1,10 +1,11 @@
 const express = require("express")
 const cors = require('cors')
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = 3001
 
 app.use(cors())
 app.use(express.json())
+app.use(express.static('dist'))
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
@@ -56,10 +57,17 @@ app.get("/api/persons/:id", (req, res) => {
     }
 })
 
+const generateId = () => {
+    const maxId = persons.length > 0
+      ? Math.max(...persons.map(n => n.id))
+      : 0
+    return maxId + 1
+}
+
 app.post("/api/persons/", (req,res) => {
-    const id = Math.floor(Math.random()*100).toString();
     const person = req.body;
-    person.id = id;
+    person.id = generateId();
+    person.id = person.id.toString();;
     if (person.name && person.number) {
         persons = persons.concat(person)
         res.json(person)
