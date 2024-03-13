@@ -1,102 +1,68 @@
 const express = require("express")
 const cors = require('cors')
+require('dotenv').config()
 const app = express()
-const PORT = 3001
+const Person = require('./mongo')
+const PORT = process.env.PORT
 
 app.use(cors())
 app.use(express.json())
-app.use(express.static('dist'))
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
 
-let persons = [
-    {
-      "id": "1",
-      "name": "Samir",
-      "number": "0693259691"
-    },
-    {
-      "id": "2",
-      "name": "Talha",
-      "number": "0656884217"
-    },
-    {
-      "id": "3",
-      "name": "Anis",
-      "number": "0698325698"
-    },
-    {
-      "id": "4",
-      "name": "Baki",
-      "number": "0565962367"
-    },
-    {
-      "id": "5",
-      "name": "Moumin",
-      "number": "0594875614"
-    },
-    {
-      "id": "6",
-      "name": "Fatih",
-      "number": "0698325589"
+app.get('/api/persons', (request, response) => {
+    Person.find({}).then(persons => {
+      response.json(persons)
+    })
+})
+
+
+app.get('/api/persons/:id', (request, response) => {
+    Person.findById(request.params.id)
+        .then(person => {
+            if (person) {
+                response.json(person)
+            } else {
+                response.status(404).end()
+            }
+        })
+        .catch(error => {
+            response.status(400).send({ error: 'malformatted id' })
+        })
+})
+
+app.post('/api/persons', (request, response) => {
+    const body = request.body
+    if (body.name === undefined  || body.number === undefined) {
+        return response.status(400).json({ error: 'content missing' })
     }
-]
-
-app.get("/api/persons", (req, res) => {
-    res.json(persons)
+  
+    const person = new Person({
+        name: body.name,
+        number: body.number,
+    })
+    
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 })
 
-app.get("/api/persons/:id", (req, res) => {
-    const id = Number(req.params.id);
-    const person = persons.find(person => person.id == id);
-    if (person) {
-        res.json(person)
-    } else {
-        res.status(200).end()
+app.delete('/api/persons/:id', (request, response, next) => {
+    Person.findByIdAndDelete(request.params.id)
+      .then(result => {
+        response.json(request.params).status(204).end()
+      })
+})
+  
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+    const person = {
+      name: body.name,
+      number: body.number,
     }
-})
-
-const generateId = () => {
-    const maxId = persons.length > 0
-      ? Math.max(...persons.map(n => n.id))
-      : 0
-    return maxId + 1
-}
-
-app.post("/api/persons/", (req,res) => {
-    const person = req.body;
-    person.id = generateId();
-    person.id = person.id.toString();;
-    if (person.name && person.number) {
-        persons = persons.concat(person)
-        res.json(person)
-    } else {
-        res.status(400).send({ error: 'missing values' }).end();
-    }
-})
-
-app.get("/api/info", (req, res) =>{
-    const time = new Date()
-    res.send("<p>Phonebook has info for "
-             + persons.length.toString()
-             + " persons.</p>"
-             + "<p>"
-             + time.toString()
-             + "</p>")
-})
-
-app.delete("/api/persons/:id", (req, res) => {
-    const person = persons[Number(req.params.id)-1]
-    persons = persons.filter(person => person.id != req.params.id)
-    if (person) {
-        res.json(person)
-    } else {
-        res.status(404).send({ error: 'Error deleting resource' }).end();
-    }
-})
-
-app.put("/api/persons/:id", (req, res) => {
-    persons = persons.map(person => person.id != req.params.id ? person : req.body)
-    res.json(persons[Number(req.params.id)-1])
+    Person.findByIdAndUpdate(body.id, person, { new: true })
+          .then(updatedPerson => {
+            response.json(updatedPerson)
+          })
 })
